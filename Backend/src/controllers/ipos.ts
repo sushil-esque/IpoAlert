@@ -5,10 +5,12 @@ import { asyncHandler } from "../middlewares/asyncHandler";
 
 export const getCurrentIpos = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const ipos = await Ipos.find({ status: "open" });
-    const currentIpos = ipos.filter(
-      (ipo) => ipo.openDate <= new Date() && ipo.closeDate >= new Date(),
-    );
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentIpos = await Ipos.find({
+      openDate: { $lte: today },
+      closeDate: { $gte: today },
+    });
     return res.status(200).send({ message: "success", data: currentIpos });
   },
 );

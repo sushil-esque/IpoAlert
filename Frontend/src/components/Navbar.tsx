@@ -91,9 +91,8 @@ function Navbar() {
       <div className="container mx-auto h-full flex items-center justify-between px-4">
         {/* ── Brand ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-2 select-none">
-          <span className="text-2xl">🚀</span>
           <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">
-            IPO<span className="text-[#5177f6]">Alert</span>
+            IPO<span className="text-[#5177f6]">Notify</span>
           </span>
         </div>
 

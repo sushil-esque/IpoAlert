@@ -7,13 +7,15 @@ import mongoose from "mongoose";
 import path from "path";
 import { Request, Response } from "express";
 
-// dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 const url = "https://cdsc.com.np/ipolist";
 // const DB_URL = process.env.MONGO_URL!;
 // if (!DB_URL) {
 //   throw new Error("MONGO_URL not defined");
 // }
-
+type QueryType = {
+  secret?: string;
+};
 export async function getIpos(): Promise<IPOS[]> {
   const data: Array<IPOS> = [];
   console.log("void");
@@ -49,27 +51,31 @@ export async function getIpos(): Promise<IPOS[]> {
 }
 
 export async function addIpos(req: Request, res: Response) {
-  try {
-    // await mongoose.connect(DB_URL);
-    const ipos = await getIpos();
-    console.log(ipos);
-    
-    const ipoNames = ipos.map((el) => el.name);
-    const matchedIpos = await Ipos.find({ name: { $in: ipoNames } });
+  if (req.query.secret === process.env.QUERY_SECRET) {
+    try {
+      // await mongoose.connect(DB_URL);
+      const ipos = await getIpos();
+      console.log(ipos);
 
-    const newIpos = ipos.filter(
-      (item) => !matchedIpos.some((m) => m.name === item.name),
-    );
-    if (newIpos.length === 0) {
-      console.log("no ipos to register");
-      return res.send("no ipos to register");
+      const ipoNames = ipos.map((el) => el.name);
+      const matchedIpos = await Ipos.find({ name: { $in: ipoNames } });
+
+      const newIpos = ipos.filter(
+        (item) => !matchedIpos.some((m) => m.name === item.name),
+      );
+      if (newIpos.length === 0) {
+        console.log("no ipos to register");
+        return res.send("no ipos to register");
+      }
+      console.log(newIpos);
+      await Ipos.insertMany(newIpos);
+      console.log("succesfully added new ipos");
+      return res.send("succesfully added new ipos");
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send(err);
     }
-    console.log(newIpos);
-    await Ipos.insertMany(newIpos);
-    console.log("succesfully added new ipos");
-    return res.send("succesfully added new ipos");
-  } catch (err) {
-    console.log(err);
-    return res.status(500).send(err);
+  } else {
+    res.status(401).json({ message: "Unauthorized" });
   }
 }

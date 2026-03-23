@@ -38,7 +38,7 @@ function Hero() {
       </h2>
       {!isLoggedIn && (
         <p className="text-center mt-8 text-lg text-gray-600 dark:text-gray-400">
-          Receive automated email notifications for upcoming IPOs.
+         Receive automated email alerts on the exact day an IPO opens and closes, so you never miss the start or the final chance to invest.
         </p>
       )}
 
@@ -199,16 +199,16 @@ function Hero() {
                 {/* Sender Info */}
                 <div className="px-5 py-3 flex items-start gap-3 border-b border-gray-100 dark:border-gray-700/50">
                   <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#5177f6] to-[#7c3aed] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-lg">
-                    IA
+                    IN
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                          IPO Alert
+                          IPO Notify
                         </span>
                         <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 hidden sm:inline">
-                          &lt;ipoalert@notify.com&gt;
+                          &lt;iponotify@notify.com&gt;
                         </span>
                       </div>
                       <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
@@ -224,14 +224,14 @@ function Hero() {
                 {/* Email Body */}
                 <div className="px-6 py-5 bg-white dark:bg-[#1a1a2e]">
                   <div style={{ fontFamily: "Inter, sans-serif" }}>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                       📢 IPO alerts for you
                     </h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    <p className="text-[10px] sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-6">
                       Here are the IPOs opening or closing today:
                     </p>
 
-                    <ul className="list-none p-0 m-0 space-y-4">
+                    <ul className="list-none p-0 m-0 space-y-2 sm:space-y-4">
                       {SAMPLE_IPOS.map((ipo) => {
                         const isOpeningToday = isToday(ipo.openDate);
                         const isClosingToday = isToday(ipo.closeDate);
@@ -245,12 +245,12 @@ function Hero() {
                                   : "bg-emerald-50 dark:bg-emerald-500/5 border-l-emerald-500"
                               }`}
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <strong className="text-base text-gray-900 dark:text-white font-bold">
+                              <div className="flex justify-between items-start mb-1 sm:mb-2">
+                                <strong className="text-xs sm:text-base text-gray-900 dark:text-white font-bold">
                                   {ipo.name}
                                 </strong>
                                 <span
-                                  className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter ${
+                                  className={`text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full uppercase tracking-tighter ${
                                     isClosingToday
                                       ? "bg-red-100 text-red-600 dark:bg-red-500/20"
                                       : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"
@@ -259,7 +259,7 @@ function Hero() {
                                   {isClosingToday ? "Closing" : "Opening"}
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                              <p className="text-[9px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
                                 {isOpeningToday && (
                                   <>
                                     🚀 This IPO is officially{" "}
@@ -280,14 +280,14 @@ function Hero() {
                                   </>
                                 )}
                               </p>
-                              <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-white/5 flex gap-4">
-                                <span className="text-[10px] text-gray-500">
+                              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200/50 dark:border-white/5 flex flex-col sm:flex-row gap-1 sm:gap-4">
+                                <span className="text-[8px] sm:text-[10px] text-gray-500">
                                   <span className="font-semibold text-gray-700 dark:text-gray-300">
                                     Open:
                                   </span>{" "}
                                   {new Date(ipo.openDate).toLocaleDateString()}
                                 </span>
-                                <span className="text-[10px] text-gray-500">
+                                <span className="text-[8px] sm:text-[10px] text-gray-500">
                                   <span className="font-semibold text-gray-700 dark:text-gray-300">
                                     Close:
                                   </span>{" "}
