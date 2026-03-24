@@ -16,7 +16,6 @@ import "./strategies/googleStrategy";
 import { errorHandler } from "./middlewares/errorHandler";
 import cors from "cors";
 const app = express();
-app.set("trust proxy", 1);
 const DB_URL = process.env.MONGO_URL as string;
 mongoose
   .connect(DB_URL)
@@ -33,7 +32,7 @@ app.use(
 );
 
 app.use(express.json());
-
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSION_SECRET as string,
