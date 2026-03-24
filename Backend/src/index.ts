@@ -59,7 +59,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-const PORT = 3000;
+const PORT = process.env.PORT || 5000;
 
 app.use(authRouter);
 app.use(iposRouter);
