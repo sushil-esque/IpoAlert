@@ -1,7 +1,10 @@
 import { Router } from "express";
 import passport from "passport";
 import { protect } from "../middlewares/authHandler";
+import dotenv from "dotenv";
+import path from "path";
 
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 const authRouter = Router();
 
 authRouter.get("/auth/google", passport.authenticate("google"));
