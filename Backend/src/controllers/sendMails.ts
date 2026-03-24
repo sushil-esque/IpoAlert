@@ -22,10 +22,9 @@ export const sendMailsByGoogle = asyncHandler(
   async (req: Request<{}, {}, {}, QueryType>, res: Response) => {
     if (req.query.secret === process.env.QUERY_SECRET) {
       const transporter = nodemailer.createTransport({
-        service: "gmail",
         host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // Use true for port 465, false for port 587
+        port: 465,
+        secure: true, // Use true for port 465, false for port 587
         auth: {
           user: process.env.FROM_EMAIL!,
           pass: process.env.GOOGLE_APP_PASSWORD,
