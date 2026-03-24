@@ -6,73 +6,120 @@ import sgMail from "@sendgrid/mail";
 import dotenv from "dotenv";
 import path from "path";
 import { asyncHandler } from "../middlewares/asyncHandler";
-import nodemailer from "nodemailer";
-import dns from "dns";
-
-// Force Node.js to use IPv4 instead of IPv6 for DNS resolution
-// This prevents the ENETUNREACH error on environments like Render
-dns.setDefaultResultOrder("ipv4first");
+import { google } from "googleapis";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-// sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-
-//ES8
 
 type QueryType = {
   secret?: string;
 };
-const now = new Date();
+
+// Helper function to create the raw email base64 string
+const makeBody = (
+  bcc: string,
+  to: string,
+  from: string,
+  subject: string,
+  message: string,
+) => {
+  const encodedSubject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
+  const str = [
+    `Content-Type: text/html; charset="UTF-8"\n`,
+    `MIME-Version: 1.0\n`,
+    `Content-Transfer-Encoding: 8bit\n`,
+    `to: ${to}\n`,
+    `from: ${from}\n`,
+    `bcc: ${bcc}\n`,
+    `subject: ${encodedSubject}\n\n`,
+    message,
+  ].join("");
+
+  return Buffer.from(str)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+};
 
 export const sendMailsByGoogle = asyncHandler(
   async (req: Request<{}, {}, {}, QueryType>, res: Response) => {
-    if (req.query.secret === process.env.QUERY_SECRET) {
-      const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // Use true for port 465, false for port 587
-        auth: {
-          user: process.env.FROM_EMAIL!,
-          pass: process.env.GOOGLE_APP_PASSWORD,
-        },
-      });
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    if (req.query.secret !== process.env.QUERY_SECRET) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
-      console.log("Request time:", now.toISOString());
-      console.log("Start of Today (local):", startOfToday.toString());
-      console.log("End of Today (local):", endOfToday.toString());
+    // Initialize OAuth2 client for Gmail API
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      "https://developers.google.com/oauthplayground",
+    );
 
-      const IposToSendToday = await Ipos.find({
-        $or: [
-          { openDate: { $gte: startOfToday, $lte: endOfToday } },
-          { closeDate: { $gte: startOfToday, $lte: endOfToday } },
-        ],
-      });
+    oAuth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN ?? null,
+    });
 
-      console.log("IPOs found:", IposToSendToday.length);
-      if (IposToSendToday.length > 0) {
-        console.log("IPOs names:", IposToSendToday.map(i => i.name));
+    const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
+
+    const now = new Date();
+    // Use UTC for consistent date bounding to avoid timezone issues where dates scrape differently
+    const startOfToday = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const endOfToday = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        23,
+        59,
+        59,
+        999,
+      ),
+    );
+
+    // Get IPOs that are strictly opening today OR closing today
+    const IposToSendToday = await Ipos.find({
+      $or: [
+        { openDate: { $gte: startOfToday, $lte: endOfToday } },
+        { closeDate: { $gte: startOfToday, $lte: endOfToday } },
+      ],
+    });
+
+    if (!IposToSendToday || IposToSendToday.length === 0) {
+      return res.send("no Ipos to send today");
+    }
+
+    const users = await User.find();
+    if (!users || users.length === 0) return res.send("no users");
+
+    const userEmails = users
+      .map((u) => u.email)
+      .filter((email) => email && email !== process.env.FROM_EMAIL)
+      .join(",");
+
+    const ipoList = IposToSendToday.map((ipo) => {
+      // Check if it's strictly opening or closing today using the UTC bounds
+      const isOpeningToday =
+        ipo.openDate >= startOfToday && ipo.openDate <= endOfToday;
+      const isClosingToday =
+        ipo.closeDate >= startOfToday && ipo.closeDate <= endOfToday;
+
+      let statusMessage =
+        "🟢 This IPO is currently ACTIVE and open for subscription.";
+      let borderColor = "#2196F3"; // Blue for generally open
+
+      if (isOpeningToday) {
+        statusMessage =
+          "🚀 Big News! This IPO is officially OPEN for subscription today. Time to get your funds ready!";
+        borderColor = "#4CAF50"; // Green
+      } else if (isClosingToday) {
+        statusMessage =
+          "⏰ LAST CHANCE! This IPO is CLOSING today. If you haven't filled out the form, hurry up—the deadline is approaching!";
+        borderColor = "#F44336"; // Red
       }
-      
-      if (!IposToSendToday || IposToSendToday.length === 0)
-        return res.send("no Ipos to send today");
-      const users = await User.find();
-      if (!users || users.length === 0) return res.send("no users");
 
-      const userEmails = users
-        .map((u) => u.email)
-        .filter((email) => email && email !== process.env.FROM_EMAIL);
-
-      const ipoList = IposToSendToday
-        .map((ipo) => {
-          const statusMessage = ipo.openDate >= startOfToday && ipo.openDate <= endOfToday
-            ? "🚀 Big News! This IPO is officially OPEN for subscription today. Time to get your funds ready!" 
-            : "⏰ LAST CHANCE! This IPO is CLOSING today. If you haven't filled out the form, hurry up—the deadline is approaching!";
-          
-          return `
+      return `
     <li>
-      <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${ipo.openDate >= startOfToday && ipo.openDate<= endOfToday ? '#4CAF50' : '#F44336'}; background: #f9f9f9;">
+      <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${borderColor}; background: #f9f9f9;">
         <strong style="font-size: 18px;">${ipo.name}</strong><br/>
         <p style="font-size: 16px; color: #333;">${statusMessage}</p>
         <span style="color: #666;">🗓 <strong>Open Date:</strong> ${new Date(ipo.openDate).toDateString()}</span><br/>
@@ -80,46 +127,52 @@ export const sendMailsByGoogle = asyncHandler(
       </div>
     </li>
   `;
-        })
-        .join("");
-      (async () => {
-        try {
-          console.log(userEmails);
+    }).join("");
 
-          const info = await transporter.sendMail({
-            from: {
-              name: "IPO Alert",
-              address: process.env.FROM_EMAIL!,
-            },
-            to: userEmails,
-            subject: `🚀 IPO Alert: ${IposToSendToday.length} Update(s) for Today!`,
-            text: `There are ${IposToSendToday.length} IPO(s) opening/closing today. Check your dashboard for details.`,
-            html: `
+    const fromEmail =
+      process.env.FROM_EMAIL || "IPO Alerts <alerts@iporeminder.com>";
+    const subject = `🚀 IPO Alert: ${IposToSendToday.length} Update(s) for Today!`;
+    const htmlMessage = `
     <div style="font-family: Arial, sans-serif;">
       <h2>📢 Current IPO alerts</h2>
       <p>Here are the IPOs you can apply for right now:</p>
-
-      <ul>
-        ${ipoList}
-      </ul>
-
+      <ul style="list-style-type: none; padding: 0;">${ipoList}</ul>
       <p>Don't miss the deadlines!</p>
-
       <hr/>
       <small>This is an automated reminder.</small>
     </div>
-  `,
-          });
+  `;
 
-          console.log("Message sent:", info.messageId);
-          res.status(200).json({ message: "Emails sent successfully" });
-        } catch (err) {
-          console.error(err);
-          throw err;
-        }
-      })();
-    } else {
-      res.status(401).json({ message: "Unauthorized" });
+    // Create the display name for the sender
+    const senderEmail = process.env.FROM_EMAIL || "alerts@iporeminder.com";
+    const formattedFrom = `"IpoNotify" <${senderEmail}>`;
+
+    // Creates raw message encoding. Using BCC here so recipients can't see each other's emails
+    const rawMessage = makeBody(
+      userEmails, // BCC
+      formattedFrom, // To (send to yourself)
+      formattedFrom, // From (shows as IpoNotify)
+      subject,
+      htmlMessage,
+    );
+
+    try {
+      const response = await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: rawMessage,
+        },
+      });
+
+      console.log("Message sent via Gmail API:", response.data.id);
+      res
+        .status(200)
+        .json({ message: "Emails sent successfully using Gmail API" });
+    } catch (err) {
+      console.error("Gmail API Error:", err);
+      res
+        .status(500)
+        .json({ message: "Failed to send emails via Gmail API", error: err });
     }
   },
 );
