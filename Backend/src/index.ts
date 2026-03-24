@@ -16,6 +16,7 @@ import "./strategies/googleStrategy";
 import { errorHandler } from "./middlewares/errorHandler";
 import cors from "cors";
 const app = express();
+app.set("trust proxy", 1);
 const DB_URL = process.env.MONGO_URL as string;
 mongoose
   .connect(DB_URL)
