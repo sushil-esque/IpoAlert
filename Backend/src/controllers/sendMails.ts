@@ -168,7 +168,10 @@ export const sendMailsByGoogle = asyncHandler(
       console.error("Gmail API Error:", err);
       res
         .status(500)
-        .json({ message: "Failed to send emails via Gmail API", error: err });
+        .json({
+          message: "Failed to send emails via Gmail API",
+          error: err.message || "Unknown error",
+        });
     }
   },
 );
