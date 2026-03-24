@@ -23,10 +23,12 @@ mongoose
   .catch((err) => {
     console.log(err);
   });
+  const frontendUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
 
 app.use(
   cors({
-    origin: true,
+    origin: frontendUrl,
     credentials: true,
   }),
 );
@@ -42,11 +44,12 @@ app.use(
       maxAge: 60000 *60* 24 * 7,
       // Only send cookie over HTTPS in production.
       // Must be true when using sameSite: "none"
-      secure: process.env.NODE_ENV === "production",
+       // If we are on Render (proxy) or production, force Secure/None
+      secure: process.env.NODE_ENV === "production" || !!process.env.RENDER,
       // Allow cookie to be sent from backend (Render)
       // to frontend on a different domain (Vercel).
       // Chrome requires "none" and secure: true for this.
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: (process.env.NODE_ENV === "production" || !!process.env.RENDER) ? "none" : "lax",
       // Prevent javascript from accessing the cookie (extra security)
       httpOnly: true,
     },
