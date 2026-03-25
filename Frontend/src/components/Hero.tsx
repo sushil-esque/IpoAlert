@@ -168,7 +168,7 @@ function Hero() {
               </div>
 
               {/* Email Scrollable Content */}
-              <div className="h-[300px] sm:h-[450px] overflow-y-auto scrollbar-hide bg-white dark:bg-[#1a1a2e]">
+              <div className="h-[350px] sm:h-[450px] overflow-y-auto bg-white dark:bg-[#1a1a2e]">
                 {/* Email Header (Subject Line) */}
                 <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700/50">
                   <div className="flex items-center gap-3">
@@ -300,7 +300,7 @@ function Hero() {
                       })}
                     </ul>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5">
+                    <div className="mt-8 pt-6 pb-12 border-t border-gray-100 dark:border-white/5">
                       <p className="text-xs text-gray-400 text-center italic">
                         This is an automated reminder from IPOAlert.
                       </p>

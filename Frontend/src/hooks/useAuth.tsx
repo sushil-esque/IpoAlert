@@ -8,7 +8,7 @@ function useAuth() {
     queryFn: getMe,
     retry: false,
     staleTime: 1000 * 30, // 30 seconds
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
   const user = data?.data  
 

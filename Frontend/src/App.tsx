@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuthContext } from "./context/AuthContext";
 import CurrentIpos from "./components/CurrentIpos";
 import Footer from "./components/Footer";
+import Loader from "./components/Loader";
 
 function App() {
   const { isLoading, user } = useAuthContext();
@@ -31,7 +32,7 @@ function App() {
     }
   }, []);
 
-  if (isLoading) return <div>loading</div>;
+  if (isLoading) return <Loader />;
   return (
     <>
       {console.log(user)}
