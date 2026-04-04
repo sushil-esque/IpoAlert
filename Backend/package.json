@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "description": "",
-    "dependencies": {
+  "dependencies": {
     "@sendgrid/mail": "^8.1.6",
     "@types/connect-mongo": "^3.1.2",
     "@types/cors": "^2.8.19",
@@ -33,12 +33,12 @@
     "mongoose": "^8.23.0",
     "nodemailer": "^8.0.3",
     "passport": "^0.7.0",
-    "passport-google-oauth2": "^0.2.0"
+    "passport-google-oauth2": "^0.2.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
-
 }

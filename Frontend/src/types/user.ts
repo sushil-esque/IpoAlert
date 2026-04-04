@@ -5,4 +5,5 @@ export interface User {
   name: string;
   picture?: string;
   role: "admin" | "user";
+  subscribedCategory?: string;
 }

@@ -1,11 +1,9 @@
 import { Router } from "express";
-import { getUsers } from "../controllers/users";
+import { changeSubscription, getUsers } from "../controllers/users";
+import { protect } from "../middlewares/authHandler";
 
 const router = Router();
 router.get("/getUsers", getUsers);
-// router.get("/:id",getUserById)
-
-// /api/users
-// router.post("/",createUser)
+router.put("/updateSubscription",protect, changeSubscription )
 
 export  default router

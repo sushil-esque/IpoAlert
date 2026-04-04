@@ -5,10 +5,8 @@ import { User } from "../models/users";
 import sgMail from "@sendgrid/mail";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { google } from "googleapis";
-
-type QueryType = {
-  secret?: string;
-};
+import { QueryType } from "../types/queryType";
+import { IPOS } from "../dtos/Ipos.dto";
 
 // Helper function to create the raw email base64 string
 const makeBody = (
@@ -36,8 +34,8 @@ const makeBody = (
     .replace(/\//g, "_");
 };
 
-export const sendMailsByGoogle = asyncHandler(
-  async (req: Request<{}, {}, {}, QueryType>, res: Response) => {
+export const sendMailsByGoogle = asyncHandler<{}, {}, {}, QueryType>(
+  async (req, res) => {
     if (req.query.secret !== process.env.QUERY_SECRET) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -84,36 +82,81 @@ export const sendMailsByGoogle = asyncHandler(
       return res.send("no Ipos to send today");
     }
 
+    const GeneralIposToSendToday = await Ipos.find({
+      $or: [
+        { openDate: { $gte: startOfToday, $lte: endOfToday } },
+        { closeDate: { $gte: startOfToday, $lte: endOfToday } },
+      ],
+      category: "general_public",
+    });
+
+    const ForeignIposToSendToday = await Ipos.find({
+      $or: [
+        { openDate: { $gte: startOfToday, $lte: endOfToday } },
+        { closeDate: { $gte: startOfToday, $lte: endOfToday } },
+      ],
+      category: "foreign_employment",
+    });
+
+    const ReservedIposToSendToday = await Ipos.find({
+      $or: [
+        { openDate: { $gte: startOfToday, $lte: endOfToday } },
+        { closeDate: { $gte: startOfToday, $lte: endOfToday } },
+      ],
+      category: "reserved",
+    });
+
     const users = await User.find();
     if (!users || users.length === 0) return res.send("no users");
 
-    const userEmails = users
+    //Users
+    const usersSubscribedToGeneral = await User.find({
+      subscribedCategory: "general_public",
+    });
+    const usersSubscribedToForeign = await User.find({
+      subscribedCategory: "foreign_employment",
+    });
+    const usersSubscribedToReserved = await User.find({
+      subscribedCategory: "reserved",
+    });
+    const usersSubscribedToAll = await User.find({
+      subscribedCategory: "all",
+    });
+
+    const generalEmails = usersSubscribedToGeneral
       .map((u) => u.email)
-      .filter((email) => email && email !== process.env.FROM_EMAIL)
       .join(",");
+    const foreignEmails = usersSubscribedToForeign
+      .map((u) => u.email)
+      .join(",");
+    const reservedEmails = usersSubscribedToReserved
+      .map((u) => u.email)
+      .join(",");
+    const allEmails = usersSubscribedToAll.map((u) => u.email).join(",");
 
-    const ipoList = IposToSendToday.map((ipo) => {
-      // Check if it's strictly opening or closing today using the UTC bounds
-      const isOpeningToday =
-        ipo.openDate >= startOfToday && ipo.openDate <= endOfToday;
-      const isClosingToday =
-        ipo.closeDate >= startOfToday && ipo.closeDate <= endOfToday;
+    const ipoListt = (IoposToSend: IPOS[]) => {
+      return IoposToSend.map((ipo) => {
+        // Check if it's strictly opening or closing today using the UTC bounds
+        const isOpeningToday =
+          ipo.openDate >= startOfToday && ipo.openDate <= endOfToday;
+        const isClosingToday =
+          ipo.closeDate >= startOfToday && ipo.closeDate <= endOfToday;
 
-      let statusMessage =
-        "🟢 This IPO is currently ACTIVE and open for subscription.";
-      let borderColor = "#2196F3"; // Blue for generally open
+        let statusMessage =
+          "🟢 This IPO is currently ACTIVE and open for subscription.";
+        let borderColor = "#2196F3"; // Blue for generally open
 
-      if (isOpeningToday) {
-        statusMessage =
-          "🚀 Big News! This IPO is officially OPEN for subscription today. Time to get your funds ready!";
-        borderColor = "#4CAF50"; // Green
-      } else if (isClosingToday) {
-        statusMessage =
-          "⏰ LAST CHANCE! This IPO is CLOSING today. If you haven't filled out the form, hurry up—the deadline is approaching!";
-        borderColor = "#F44336"; // Red
-      }
+        if (isOpeningToday) {
+          statusMessage =
+            "🚀 Big News! This IPO is officially OPEN for subscription today. Time to get your funds ready!";
+          borderColor = "#4CAF50"; // Green
+        } else if (isClosingToday) {
+          statusMessage =
+            "⏰ LAST CHANCE! This IPO is CLOSING today. If you haven't filled out the form, hurry up—the deadline is approaching!";
+          borderColor = "#F44336"; // Red
+        }
 
-      return `
+        return `
     <li>
       <div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ${borderColor}; background: #f9f9f9;">
         <strong style="font-size: 18px;">${ipo.name}</strong><br/>
@@ -123,55 +166,134 @@ export const sendMailsByGoogle = asyncHandler(
       </div>
     </li>
   `;
-    }).join("");
+      }).join("");
+    };
 
-    const fromEmail =
-      process.env.FROM_EMAIL || "IPO Alerts <alerts@iporeminder.com>";
-    const subject = `🚀 IPO Alert: ${IposToSendToday.length} Update(s) for Today!`;
-    const htmlMessage = `
+    const subjectt = (IposToSend: IPOS[]) => {
+      return `🚀 IPO Alert: ${IposToSend.length} Update(s) for Today!`;
+    };
+
+    const htmlMessagee = (IposToSend: IPOS[]) => {
+      return `
     <div style="font-family: Arial, sans-serif;">
       <h2>📢 IPO alerts for you</h2>
       <p>Here are the IPOs opening or closing today:</p>
-      <ul style="list-style-type: none; padding: 0;">${ipoList}</ul>
+      <ul style="list-style-type: none; padding: 0;">${ipoListt(IposToSend)}</ul>
       <p>Don't miss the deadlines!</p>
       <hr/>
       <small>This is an automated reminder.</small>
     </div>
   `;
+    };
 
     // Create the display name for the sender
-    const senderEmail = process.env.FROM_EMAIL || "alerts@iporeminder.com";
+    const senderEmail = process.env.FROM_EMAIL;
     const formattedFrom = `"IpoNotify" <${senderEmail}>`;
 
-    // Creates raw message encoding. Using BCC here so recipients can't see each other's emails
-    const rawMessage = makeBody(
-      userEmails, // BCC
-      formattedFrom, // To (send to yourself)
-      formattedFrom, // From (shows as IpoNotify)
-      subject,
-      htmlMessage,
-    );
-
     try {
-      const response = await gmail.users.messages.send({
-        userId: "me",
-        requestBody: {
-          raw: rawMessage,
-        },
-      });
-
-      console.log("Message sent via Gmail API:", response.data.id);
-      res
-        .status(200)
-        .json({ message: "Emails sent successfully using Gmail API" });
-    } catch (err:any) {
-      console.error("Gmail API Error:", err);
-      res
-        .status(500)
-        .json({
-          message: "Failed to send emails via Gmail API",
-          error: err.message || "Unknown error",
+      if (generalEmails.length > 0 && GeneralIposToSendToday.length > 0) {
+        const subjectGeneral = subjectt(GeneralIposToSendToday);
+        const htmlMessageGeneral = htmlMessagee(GeneralIposToSendToday);
+        // Creates raw message encoding. Using BCC here so recipients can't see each other's emails
+        const rawMessageGeneral = makeBody(
+          generalEmails, //BCC
+          formattedFrom, //To
+          formattedFrom, //From
+          subjectGeneral,
+          htmlMessageGeneral,
+        );
+        const response = await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: rawMessageGeneral,
+          },
         });
+        console.log(
+          "Message sent for general users via Gmail API:",
+          response.data.id,
+        );
+      }
+      if (foreignEmails.length > 0 && ForeignIposToSendToday.length > 0) {
+        const subjectForeign = subjectt(ForeignIposToSendToday);
+        const htmlMessageForeign = htmlMessagee(ForeignIposToSendToday);
+        const rawMessageForeign = makeBody(
+          foreignEmails,
+          formattedFrom,
+          formattedFrom,
+          subjectForeign,
+          htmlMessageForeign,
+        );
+        const response = await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: rawMessageForeign,
+          },
+        });
+        console.log(
+          "Message sent for foreign users via Gmail API:",
+          response.data.id,
+        );
+      }
+      if (reservedEmails.length > 0 && ReservedIposToSendToday.length > 0) {
+        const subjectReserved = subjectt(ReservedIposToSendToday);
+        const htmlMessageReserved = htmlMessagee(ReservedIposToSendToday);
+        const rawMessageReserved = makeBody(
+          reservedEmails,
+          formattedFrom,
+          formattedFrom,
+          subjectReserved,
+          htmlMessageReserved,
+        );
+        const response = await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: rawMessageReserved,
+          },
+        });
+        console.log(
+          "Message sent for reserved users via Gmail API:",
+          response.data.id,
+        );
+      }
+      if (allEmails.length > 0 && IposToSendToday.length > 0) {
+        const subjectAll = subjectt(IposToSendToday);
+        const htmlMessageAll = htmlMessagee(IposToSendToday);
+        const rawMessageAll = makeBody(
+          allEmails,
+          formattedFrom,
+          formattedFrom,
+          subjectAll,
+          htmlMessageAll,
+        );
+        const response = await gmail.users.messages.send({
+          userId: "me",
+          requestBody: {
+            raw: rawMessageAll,
+          },
+        });
+        console.log(
+          "Message sent for all subscribed users via Gmail API:",
+          response.data.id,
+        );
+      }
+      if (
+        (generalEmails.length > 0 && GeneralIposToSendToday.length > 0) ||
+        (foreignEmails.length > 0 && ForeignIposToSendToday.length > 0) ||
+        (reservedEmails.length > 0 && ReservedIposToSendToday.length > 0) ||
+        (allEmails.length > 0 && IposToSendToday.length > 0)
+      ) {
+        res
+          .status(200)
+          .send({ message: "Emails sent successfully using Gmail API" });
+      } else {
+        res.status(200).send({ message: "No emails and ipos to send" });
+      }
+    } catch (err: any) {
+      console.error("Gmail API Error:", err);
+      res.status(500).send({
+        message: "Failed to send emails via Gmail API",
+        error: err.message || "Unknown error",
+      });
     }
   },
 );

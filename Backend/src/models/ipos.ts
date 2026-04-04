@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { IPOS } from "../dtos/Ipos.dto";
 
-const iposSchema = new mongoose.Schema<IPOS>(
+const iposSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -24,6 +24,10 @@ const iposSchema = new mongoose.Schema<IPOS>(
       type: Date,
       required: true,
     },
+    category: {
+      type: String,
+      enum: ["general_public", "foreign_employment", "reserved"],
+    },
     status: {
       type: String,
       enum: ["open", "closed", "upcoming"],
@@ -32,5 +36,5 @@ const iposSchema = new mongoose.Schema<IPOS>(
   },
   { timestamps: true },
 );
-
+iposSchema.index({ closeDate: 1, openDate: 1 });
 export const Ipos = mongoose.model("Ipos", iposSchema);

@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { User } from "../models/users";
-type QueryType = {
-  secret?: string;
-};
+import { QueryType } from "../types/queryType";
+import { asyncHandler } from "../middlewares/asyncHandler";
+import { subscriptionSchema } from "../zodSchema";
+
 export const getUsers = async (
   req: Request<{}, {}, {}, QueryType>,
   res: Response,
@@ -12,16 +13,20 @@ export const getUsers = async (
     const users = await User.find();
     return res.status(200).send({ message: "suceess", data: users });
   } else {
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(401).send({ message: "Unauthorized" });
   }
 };
 
-// export function getUserById(req:Request,res:Response){
+export const changeSubscription = asyncHandler(
+  async (req: Request, res: Response) => {
+    const validatedBody = subscriptionSchema.parse(req.body);
 
-//     res.send({})
-// }
-
-// export function createUser(req:Request<{},{}, createUserDto>,res:Response<User>){
-
-//     res.status(201).send({email:"",id:1,username:""})
-// }
+    await User.findByIdAndUpdate(req.user?.id, {
+      subscribedCategory: validatedBody.name,
+    });
+    
+    return res.status(200).send({
+      message: "subscription updated successfully",
+    });
+  },
+);

@@ -1,24 +1,26 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IUser extends Document {
-    googleId?: string;
-    email: string;
-    name?: string;
-    picture?: string;
-    password?: string;
-    role: "admin" | "user";
-    createdAt: Date;
-    updatedAt: Date;
+  googleId?: string;
+  email: string;
+  name?: string;
+  picture?: string;
+  password?: string;
+  role: "admin" | "user";
+  subscribedCategory?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const userSchema = new Schema<IUser>({
+const userSchema = new Schema<IUser>(
+  {
     googleId: {
-        type: String,
-        unique: true,
-        sparse: true,   // allows multiple docs without googleId (for local-auth users)
+      type: String,
+      unique: true,
+      sparse: true, // allows multiple docs without googleId (for local-auth users)
     },
-    email:{
-       type: String,
+    email: {
+      type: String,
       required: true,
       unique: true,
       lowercase: true,
@@ -30,18 +32,23 @@ const userSchema = new Schema<IUser>({
     picture: {
       type: String,
     },
-    password:{
-        type: String,
-        required: false,  // optional: Google OAuth users won't have a password
-        select: false,
+    password: {
+      type: String,
+      required: false, // optional: Google OAuth users won't have a password
+      select: false,
     },
     role: {
       type: String,
       enum: ["admin", "user"],
       default: "user",
     },
-},{timestamps:true})
+    subscribedCategory: {
+      type: String,
+      enum: ["general_public", "foreign_employment", "reserved", "all"],
+      default: "general_public",
+    },
+  },
+  { timestamps: true },
+);
 
-export const User: Model<IUser> = mongoose.model<IUser>("User", userSchema)
-
-
+export const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);

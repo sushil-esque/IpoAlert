@@ -3,10 +3,23 @@ import { load } from "cheerio";
 import { IPOS } from "../dtos/Ipos.dto";
 import { Ipos } from "../models/ipos";
 import { Request, Response } from "express";
+import { QueryType } from "../types/queryType";
 const url = "https://cdsc.com.np/ipolist";
 
-type QueryType = {
-  secret?: string;
+const getCategoryName = (
+  name: string,
+): "general_public" | "foreign_employment" | "reserved" | null => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes("foreign employment")) {
+    return "foreign_employment";
+  }
+  if (lowerName.includes("general public")) {
+    return "general_public";
+  }
+  if (lowerName.includes("reserved")) {
+    return "reserved";
+  }
+  return null;
 };
 export async function getIpos(): Promise<IPOS[]> {
   const data: Array<IPOS> = [];
@@ -26,14 +39,21 @@ export async function getIpos(): Promise<IPOS[]> {
       const issuedUnit = $(tds[3]).text().trim();
       const openDate = new Date($(tds[7]).text().trim());
       const closeDate = new Date($(tds[8]).text().trim());
-      data.push({
+      const category = getCategoryName(name);
+      console.log(category,"category");
+      
+      const ipoObj: IPOS = {
         name,
         issueManager,
         issuedUnit,
         closeDate,
         openDate,
         status: "open",
-      });
+      };
+      if (category) {
+        ipoObj.category = category;
+      }
+      data.push(ipoObj);
     });
     return data;
   } catch (err) {
@@ -42,10 +62,12 @@ export async function getIpos(): Promise<IPOS[]> {
   }
 }
 
-export async function addIpos(req: Request<{}, {}, {}, QueryType>, res: Response) {
+export async function addIpos(
+  req: Request<{}, {}, {}, QueryType>,
+  res: Response,
+) {
   if (req.query.secret === process.env.QUERY_SECRET) {
     try {
-      // await mongoose.connect(DB_URL);
       const ipos = await getIpos();
       console.log(ipos);
 

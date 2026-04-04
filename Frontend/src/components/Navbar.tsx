@@ -11,6 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Settings } from "lucide-react";
+import { useState } from "react";
+import { SubscriptionModal } from "./SubscriptionModal";
 
 // ─── Icons ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +65,8 @@ const LogoutIcon = () => (
 function Navbar() {
   const queryClient = useQueryClient();
   const { toggleTheme, darkMode } = useThemeContext();
-  const { user,  isLoggedIn } = useAuthContext();
+  const { user, isLoggedIn } = useAuthContext();
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -136,43 +140,43 @@ function Navbar() {
             <DropdownMenu>
               {/* Avatar button */}
               <DropdownMenuTrigger asChild>
-                <button
-                  className="group flex items-center gap-2 rounded-full pl-1 pr-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 shadow-sm outline-none"
-                >
-                {user?.picture ? (
-                  <img
-                    src={user.picture}
-                    alt={user.name ?? "User"}
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-[#5177f6]/40"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#5177f6] to-[#7c3aed] flex items-center justify-center text-white text-xs font-bold ring-2 ring-[#5177f6]/40">
-                    {initials}
-                  </div>
-                )}
-                <span className="text-sm font-medium text-gray-800 dark:text-gray-100 max-w-[100px] truncate hidden sm:block">
-                  {user?.name?.split(" ")[0] ?? "Account"}
-                </span>
-                {/* Chevron */}
-                <svg
-                  className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 group-data-[state=open]:rotate-180"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                <button className="group flex items-center gap-2 rounded-full pl-1 pr-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 shadow-sm outline-none">
+                  {user?.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name ?? "User"}
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-[#5177f6]/40"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#5177f6] to-[#7c3aed] flex items-center justify-center text-white text-xs font-bold ring-2 ring-[#5177f6]/40">
+                      {initials}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100 max-w-[100px] truncate hidden sm:block">
+                    {user?.name?.split(" ")[0] ?? "Account"}
+                  </span>
+                  {/* Chevron */}
+                  <svg
+                    className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 group-data-[state=open]:rotate-180"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
               </DropdownMenuTrigger>
 
               {/* Dropdown */}
-              <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl mt-2 dark:bg-[#1a1a2e] dark:border-white/10 pb-1">
-                
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-xl shadow-xl mt-2 dark:bg-[#1a1a2e] dark:border-white/10 pb-1"
+              >
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -190,6 +194,15 @@ function Navbar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="dark:bg-white/10" />
 
+                {/* Settings / Subscription */}
+                <DropdownMenuItem
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="cursor-pointer text-sm gap-3 py-2.5 px-3 mx-1 rounded-md transition-colors duration-150 focus:bg-gray-100 dark:focus:bg-white/10"
+                >
+                  <Settings className="w-4 h-4" />
+                  Subscription Settings
+                </DropdownMenuItem>
+
                 {/* Logout */}
                 <DropdownMenuItem
                   onClick={handleLogout}
@@ -202,7 +215,11 @@ function Navbar() {
             </DropdownMenu>
           ) : (
             <a
-              href="/api/auth/google"
+              href={
+                import.meta.env.DEV
+                  ? "http://localhost:5000/auth/google"
+                  : "/api/auth/google"
+              }
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#5177f6] hover:bg-[#3d5fd4]
                 text-white text-sm font-semibold shadow-md hover:shadow-[#5177f6]/40
                 hover:scale-105 active:scale-95 transition-all duration-200"
@@ -235,6 +252,11 @@ function Navbar() {
           )}
         </div>
       </div>
+
+      <SubscriptionModal
+        open={isSubscriptionModalOpen}
+        onOpenChange={setIsSubscriptionModalOpen}
+      />
     </nav>
   );
 }

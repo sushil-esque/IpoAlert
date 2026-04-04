@@ -3,7 +3,5 @@ import { addIpos } from "../utils/scrapeIpo";
 
 const router = Router();
 
-router.get("/scrapeIpos", (req, res) => {
-  addIpos(req, res);
-});
+router.post("/cron/scrapeIpos",  addIpos);
 export default router;
